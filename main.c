@@ -17,10 +17,10 @@ static Slice to_slice(u8 *data, u64 size) {
 	return s;
 }
 #define STR_SLICE(x) to_slice((u8 *)(x), (sizeof(x)-1))
-#define SLICE_LIT(x) (x).size, (x).data
+#define SLICE_LIT(x) (int)((x).size), (x).data
 
 #define line_error(p, ...)  do {                                                                                      \
-	printf("\e[1;39m%s:%d:%d \e[1;31merror:\e[1;39m ", (p)->filename, (p)->line_num + 1, (p)->pos - (p)->line_start); \
+	printf("\e[1;39m%s:%llu:%llu \e[1;31merror:\e[1;39m ", (p)->filename, (p)->line_num + 1, (p)->pos - (p)->line_start); \
 	printf(__VA_ARGS__);                                                                                              \
 	printf("\e[0m    %.*s\n", SLICE_LIT(get_full_line(p)));                                                           \
 	exit(1);                                                                                                          \
@@ -28,7 +28,7 @@ static Slice to_slice(u8 *data, u64 size) {
 
 static Slice slice_idx(Slice s, u64 idx) {
 	if (idx > s.size) {
-		panic("Invalid idx %d:%d!\n", idx, s.size);
+		panic("Invalid idx %llu:%llu!\n", idx, s.size);
 	}
 
 	Slice out;
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 		if (token.data[token.size - 1] == ':') {
 			token.size -= 1;
 
-			printf("Got label: %s\n", SLICE_LIT(token));
+			printf("Got label: %.*s\n", SLICE_LIT(token));
 		} else if (slice_eq(token, STR_SLICE("extern"))) {
 			eat_spaces(&p);
 			Slice label = get_token(&p);

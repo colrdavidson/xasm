@@ -16,6 +16,7 @@ typedef int32_t            i32;
 typedef int16_t            i16;
 typedef int8_t              i8;
 
+#ifdef __linux__
 static __inline long __syscall0(long n)
 {
 	unsigned long ret;
@@ -235,7 +236,7 @@ static int itoa(uint64_t i, uint8_t base, uint8_t *buf) {
     return o_pos + 1;
 }
 
-static int putc(int fd, char c) {
+static int putch(int fd, char c) {
 	return write(fd, (uint8_t *)&c, 1);
 }
 
@@ -266,6 +267,40 @@ static void putn(int fd, u64 i, u8 base) {
 
 	int size = itoa(i, base, tbuf);
 	write(fd, tbuf, size - 1);
+}
+
+static void *memcpy(void *dst, const void *src, size_t n) {
+	if (n == 0) {
+		return dst;
+	}
+
+	char *_dst = dst;
+	const char *_src = src;
+
+	size_t i = n - 1;
+	while (i > 0) {
+		_dst[i] = _src[i];
+		i--;
+	}
+	_dst[0] = _src[0];
+
+	return dst;
+}
+
+static void *memset(void *dst, int val, unsigned long n) {
+	char *_dst = dst;
+	for (size_t i = 0; i < n; i++) {
+		_dst[i] = val;
+	}
+
+	return dst;
+}
+
+int main(int, char **);
+
+void __main(int argc, char **argv) {
+	int ret = main(argc, argv);
+	exit(ret);
 }
 
 static void dprintf(int fd, char *fmt, ...) {
@@ -328,7 +363,7 @@ consume_moar:
 
 			int pad_sz = min_len - (sz - 1);
 			while (pad_sz > 0) {
-				putc(fd, '0');
+				putch(fd, '0');
 				pad_sz--;
 			}
 
@@ -343,7 +378,7 @@ consume_moar:
 
 			int pad_sz = min_len - (sz - 1);
 			while (pad_sz > 0) {
-				putc(fd, '0');
+				putch(fd, '0');
 				pad_sz--;
 			}
 
@@ -357,6 +392,14 @@ consume_moar:
 }
 
 #define printf(...) do { dprintf(1, __VA_ARGS__); } while (0)
+#else
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#endif
+
 #define panic(...)  do { dprintf(2, __VA_ARGS__); exit(1); } while (0)
 #define array_size(x) sizeof(x) / sizeof(*(x))
 #define floor_size(addr, size) ((addr) - ((addr) % (size)))
@@ -395,36 +438,3 @@ static int memeq(const void *dst, const void *src, size_t n) {
 	return 1;
 }
 
-static void *memcpy(void *dst, const void *src, size_t n) {
-	if (n == 0) {
-		return dst;
-	}
-
-	char *_dst = dst;
-	const char *_src = src;
-
-	size_t i = n - 1;
-	while (i > 0) {
-		_dst[i] = _src[i];
-		i--;
-	}
-	_dst[0] = _src[0];
-
-	return dst;
-}
-
-static void *memset(void *dst, int val, unsigned long n) {
-	char *_dst = dst;
-	for (size_t i = 0; i < n; i++) {
-		_dst[i] = val;
-	}
-
-	return dst;
-}
-
-int main(int, char **);
-
-void __main(int argc, char **argv) {
-	int ret = main(argc, argv);
-	exit(ret);
-}
